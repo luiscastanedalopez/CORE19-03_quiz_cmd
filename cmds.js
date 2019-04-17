@@ -151,8 +151,27 @@ exports.editCmd = (rl, id) => {
  * @param id Clave del quiz a probar.
  */
 exports.testCmd = (rl, id) => {
-    log('Probar el quiz indicado.', 'red');
-    rl.prompt();
+    if (typeof id === "undefined") {
+        errorlog(`Falta el parámetro id.`);
+        rl.prompt();
+    } else {
+        try {
+            const quiz = model.getByIndex(id);
+            rl.question(colorize(` ${quiz.question}? ` , 'red'), respuesta => {
+                log(` Su respuesta es: `, 'white')
+
+                if(respuesta.trim().toLowerCase() === quiz.answer.toLowerCase()){
+                    biglog(`Correcta`, 'green');
+                } else {
+                    biglog(`Incorrecta`, 'red');
+                }
+                rl.prompt();
+            });
+        } catch(error) {
+            errorlog(error.message);
+            rl.prompt();
+        }
+    }
 };
 
 
@@ -163,8 +182,51 @@ exports.testCmd = (rl, id) => {
  * @param rl Objeto readline usado para implementar el CLI.
  */
 exports.playCmd = rl => {
-    log('Jugar.', 'red');
-    rl.prompt();
+
+    let score = 0;
+
+    let toBeResolved = [];
+
+    for(let i = 0; i < model.count(); i++){
+
+        toBeResolved.push(model.getByIndex(i));
+    }
+
+    const playOne = () => {
+
+        if (toBeResolved.length === 0){
+
+            log(` No hay nada mas que preguntar. `, 'white');
+            log(` Fin del examen. Aciertos: `, 'white');
+            biglog(` ${score} `, 'magenta');
+            rl.prompt();
+        } else {
+
+            let valorAleatorio = Math.floor(Math.random()* toBeResolved.length);
+
+            let prueba = toBeResolved[valorAleatorio];
+
+            toBeResolved.splice(valorAleatorio,1);
+
+            rl.question(colorize(` ${prueba.question}? ` , 'red'), respuesta => {
+
+                if (respuesta.trim().toLowerCase() === prueba.answer.toLowerCase()) {
+
+                    score++;
+                    log(` CORRECTO - Lleva ${score} aciertos `, 'white');
+                    playOne();
+
+                } else {
+                    log(`INCORRECTO.`, 'white');
+                    log(` Fin del examen. Aciertos: `);
+                    biglog(` ${score} `);
+                    rl.prompt();
+                }
+
+            })
+        }
+    }
+    playOne();
 };
 
 
